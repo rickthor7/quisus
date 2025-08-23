@@ -230,7 +230,7 @@
         </div>
 
         <!-- Halaman Intro (Input Nama & Kelas) -->
-        <div id="intro-page" class="w-full flex flex-col items-center p-4 transition-opacity duration-500 ease-in-out hidden">
+        <div id="intro-page" class="w-full flex flex-col items-center p-4 transition-opacity duration-500 ease-in-out opacity-100 relative">
             <h1 class="text-4xl font-extrabold text-blue-600 mb-8 float-animation">Selamat Datang!</h1>
             <div class="card p-8 w-full max-w-sm text-center rounded-2xl">
                 <p class="text-xl font-semibold text-gray-600 mb-4">Yuk, kenalan dulu!</p>
@@ -342,7 +342,8 @@
             currentQuestionIndex = 0;
             score = 0;
             // Menyembunyikan halaman lain dan menampilkan kuis
-            introPage.classList.add('hidden');
+            introPage.style.opacity = '0';
+            introPage.style.pointerEvents = 'none';
             quizPage.style.opacity = '1';
             quizPage.style.pointerEvents = 'auto';
             dashboardPage.style.opacity = '0';
@@ -463,7 +464,6 @@
             // Sembunyikan dashboard dan tampilkan intro page lagi
             dashboardPage.style.opacity = '0';
             dashboardPage.style.pointerEvents = 'none';
-            introPage.classList.remove('hidden');
             introPage.style.opacity = '1';
             introPage.style.pointerEvents = 'auto';
             // Hentikan musik saat kembali ke halaman intro
