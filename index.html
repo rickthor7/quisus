@@ -3,483 +3,226 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kuis Seru Anak SD!</title>
-    <!-- Tailwind CSS CDN untuk styling yang responsif -->
+    <title>Kuis Seru Luar Angkasa!</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts untuk font yang ceria -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Gaya dasar untuk body dan font */
         body {
-            font-family: 'Fredoka', sans-serif;
-            background: linear-gradient(135deg, #fceabb 0%, #f8b500 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            color: #4b5563;
-        }
-        
-        /* Animasi untuk elemen kuis */
-        @keyframes float {
-            0% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-10px) rotate(5deg); }
-            100% { transform: translateY(0px) rotate(0deg); }
-        }
-
-        .float-animation {
-            animation: float 3s ease-in-out infinite;
-        }
-
-        /* Gaya untuk tombol */
-        .btn {
-            @apply p-4 rounded-xl shadow-lg transform transition-all duration-300 hover:scale-105 active:scale-95;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
-            font-weight: bold;
-        }
-        .btn:hover {
-            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
-        }
-
-        /* Gaya untuk card */
-        .card {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            border: 2px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        }
-
-        /* Gaya untuk progres bar */
-        .progress-bar {
-            width: 0%;
-            transition: width 0.5s ease-in-out;
-        }
-
-        /* Gaya untuk confetti */
-        .confetti-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
+            font-family: 'Poppins', sans-serif;
+            background: #0f0c29;
+            background: -webkit-linear-gradient(to right, #24243e, #302b63, #0f0c29);
+            background: linear-gradient(to right, #24243e, #302b63, #0f0c29);
             overflow: hidden;
-            z-index: 1000;
+            position: relative;
         }
-        .confetti {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background-color: transparent;
-            border-radius: 50%;
-            opacity: 0;
-            animation: confetti-fall 3s linear forwards;
-        }
-        @keyframes confetti-fall {
-            0% { transform: translateY(0) rotate(0); opacity: 1; }
-            100% { transform: translateY(200vh) rotate(720deg); opacity: 0; }
-        }
-
-        /* Gaya untuk form input */
-        .input-field {
-            @apply w-full px-4 py-3 rounded-lg border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-300;
-        }
-        
+        .star { position: absolute; background-color: white; border-radius: 50%; animation: twinkle 2s infinite ease-in-out; }
+        @keyframes twinkle { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+        .card { background-color: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
+        .btn-start { background: linear-gradient(90deg, #ff512f 0%, #dd2476 100%); transition: transform 0.3s, box-shadow 0.3s; }
+        .btn-start:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(221, 36, 118, 0.4); }
+        .answer-btn { transition: all 0.3s ease; }
+        .answer-btn:hover { transform: scale(1.05); background-color: rgba(255, 255, 255, 0.2); }
+        .correct { background-color: #28a745 !important; border-color: #28a745 !important; color: white !important; transform: scale(1.05); }
+        .incorrect { background-color: #dc3545 !important; border-color: #dc3545 !important; color: white !important; }
+        .hidden { display: none; }
+        #rocket { position: absolute; bottom: -150px; left: 50%; transform: translateX(-50%); width: 80px; transition: bottom 1s ease-in-out; z-index: -1; }
+        .animate-fly { animation: fly-in 1s forwards; }
+        @keyframes fly-in { from { transform: translateY(100vh); } to { transform: translateY(0); } }
     </style>
-    <!-- Firebase SDK (Pastikan versi yang digunakan sudah benar) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection, query, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Global variables provided by the Canvas environment
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        let db, auth;
-        let userId = null;
-
-        // Inisialisasi Firebase dan autentikasi
-        async function initializeFirebase() {
-            try {
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
-                userId = auth.currentUser.uid;
-                // Sembunyikan pesan loading dan tampilkan konten
-                document.getElementById('loading-state').classList.add('hidden');
-                document.getElementById('intro-page').classList.remove('hidden');
-                console.log("Firebase initialized successfully. User ID:", userId);
-            } catch (error) {
-                console.error("Error initializing Firebase:", error);
-                document.getElementById('loading-state').textContent = 'Gagal memuat. Silakan coba lagi.';
-            }
-        }
-
-        // Simpan skor ke Firestore
-        async function saveScoreToFirestore(name, playerClass, finalScore) {
-            try {
-                const scoresCollectionRef = collection(db, `/artifacts/${appId}/public/data/scores`);
-                await addDoc(scoresCollectionRef, {
-                    name: name,
-                    class: playerClass,
-                    score: finalScore,
-                    timestamp: serverTimestamp(),
-                    userId: userId // Simpan user ID untuk identifikasi
-                });
-                console.log("Score saved to Firestore successfully!");
-            } catch (e) {
-                console.error("Error adding document: ", e);
-            }
-        }
-        
-        // Dapatkan papan skor secara real-time dari Firestore
-        function getLeaderboard() {
-            const leaderboardList = document.getElementById('leaderboard-list');
-            const scoresCollectionRef = collection(db, `/artifacts/${appId}/public/data/scores`);
-
-            // Gunakan onSnapshot untuk mendengarkan perubahan secara real-time
-            onSnapshot(scoresCollectionRef, (querySnapshot) => {
-                const scores = [];
-                querySnapshot.forEach((doc) => {
-                    scores.push(doc.data());
-                });
-
-                // Urutkan skor dari yang tertinggi ke terendah
-                scores.sort((a, b) => b.score - a.score);
-
-                // Perbarui tampilan papan skor
-                leaderboardList.innerHTML = ''; // Hapus papan skor lama
-                scores.forEach((player, index) => {
-                    const listItem = document.createElement('li');
-                    listItem.classList.add('p-3', 'rounded-xl', 'mb-2', 'flex', 'justify-between', 'items-center', 'font-semibold', 'shadow-sm');
-                    
-                    // Beri warna berbeda untuk highlight user yang sedang bermain
-                    if (player.userId === userId) {
-                        listItem.classList.add('bg-blue-200');
-                    } else {
-                        listItem.classList.add('bg-white');
-                    }
-                    
-                    listItem.innerHTML = `
-                        <div class="flex items-center">
-                            <span class="mr-3 font-extrabold text-xl w-6 text-center">${index + 1}.</span>
-                            <div>
-                                <span class="font-bold">${player.name}</span>
-                                <span class="text-sm text-gray-500 block">(${player.class})</span>
-                            </div>
-                        </div>
-                        <span class="text-xl font-bold text-blue-600">${player.score}</span>
-                    `;
-                    leaderboardList.appendChild(listItem);
-                });
-            });
-        }
-
-        // Tampilkan papan skor dan mulai mendengarkan perubahan
-        function showLeaderboard() {
-            dashboardPage.classList.remove('hidden');
-            dashboardPage.classList.add('flex');
-            dashboardPage.style.opacity = '1';
-            dashboardPage.style.pointerEvents = 'auto';
-
-            quizPage.style.opacity = '0';
-            quizPage.style.pointerEvents = 'none';
-            introPage.style.opacity = '0';
-            introPage.style.pointerEvents = 'none';
-
-            getLeaderboard(); // Mulai mendengarkan perubahan papan skor
-        }
-
-        // Fungsi yang bisa diakses dari luar <script type="module">
-        window.initializeFirebase = initializeFirebase;
-        window.saveScoreToFirestore = saveScoreToFirestore;
-        window.showLeaderboard = showLeaderboard;
-
-    </script>
 </head>
-<body class="bg-yellow-200">
+<body class="text-white flex items-center justify-center min-h-screen p-4">
 
-    <!-- Tambahkan elemen audio untuk musik latar -->
-    <audio id="background-music" loop>
-        <source src="https://www.learningcontainer.com/wp-content/uploads/2020/02/Kalimba.mp3" type="audio/mpeg">
-        Your browser does not support the audio element.
-    </audio>
+    <div id="stars-container"></div>
+    <img src="https://www.pngkey.com/png/full/10-103868_rocket-png-transparent-image-rocket-ship-clipart.png" id="rocket" alt="Rocket" onerror="this.onerror=null;this.src='https://placehold.co/80x120/000000/ffffff?text=🚀';">
 
-    <div class="relative w-full max-w-2xl min-h-[600px] p-6 bg-white rounded-3xl shadow-2xl flex flex-col items-center justify-between">
-        <!-- Elemen animasi latar belakang -->
-        <div class="absolute inset-0 overflow-hidden -z-10">
-            <div class="w-20 h-20 bg-pink-400 rounded-full blur-xl absolute top-10 left-10 float-animation"></div>
-            <div class="w-16 h-16 bg-green-400 rounded-full blur-xl absolute bottom-20 right-20 float-animation" style="animation-delay: 1s;"></div>
-            <div class="w-24 h-24 bg-purple-400 rounded-full blur-xl absolute top-1/3 right-5 float-animation" style="animation-delay: 2s;"></div>
-            <div class="w-20 h-20 bg-yellow-400 rounded-full blur-xl absolute bottom-1/4 left-1/4 float-animation" style="animation-delay: 1.5s;"></div>
+    <!-- User Info Section -->
+    <div id="user-info-section" class="w-full max-w-md text-center animate-fly">
+        <div class="card p-8 rounded-2xl shadow-2xl">
+            <h1 class="text-4xl font-bold mb-6">Kuis dari Bu Galak</h1>
+            <form id="user-form">
+                <input type="text" id="name" class="w-full bg-gray-700/50 border border-gray-500 rounded-lg p-3 mb-4 text-white placeholder-gray-400" placeholder="Tulis Namamu" required>
+                <input type="text" id="class" class="w-full bg-gray-700/50 border border-gray-500 rounded-lg p-3 mb-6 text-white placeholder-gray-400" placeholder="Tulis Kelasmu" required>
+                <button type="submit" class="btn-start w-full text-white font-bold py-3 px-4 rounded-lg text-lg">MULAI PETUALANGAN!</button>
+            </form>
         </div>
+    </div>
 
-        <!-- Halaman Loading -->
-        <div id="loading-state" class="absolute inset-0 flex flex-col items-center justify-center bg-white bg-opacity-90 z-20 rounded-3xl">
-            <p class="text-2xl font-bold text-gray-700">Memuat Kuis...</p>
-            <div class="mt-4 w-12 h-12 rounded-full border-4 border-solid border-gray-200 border-t-blue-500 animate-spin"></div>
+    <!-- Quiz Section -->
+    <div id="quiz-section" class="w-full max-w-2xl hidden">
+        <div class="card p-8 rounded-2xl shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <div id="question-counter" class="text-lg font-semibold"></div>
+                <div id="timer" class="text-2xl font-bold bg-purple-600/50 px-4 py-1 rounded-lg"></div>
+            </div>
+            <div class="w-full bg-gray-700 rounded-full h-2.5 mb-6"><div id="progress-bar" class="bg-green-400 h-2.5 rounded-full"></div></div>
+            <h2 id="question-text" class="text-2xl font-semibold mb-8 text-center min-h-[100px]"></h2>
+            <div id="answer-buttons" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
         </div>
+    </div>
 
-        <!-- Halaman Intro (Input Nama & Kelas) -->
-        <div id="intro-page" class="w-full flex flex-col items-center p-4 transition-opacity duration-500 ease-in-out opacity-100 relative">
-            <h1 class="text-4xl font-extrabold text-blue-600 mb-8 float-animation">Selamat Datang!</h1>
-            <div class="card p-8 w-full max-w-sm text-center rounded-2xl">
-                <p class="text-xl font-semibold text-gray-600 mb-4">Yuk, kenalan dulu!</p>
-                <form id="intro-form" class="w-full">
-                    <div class="mb-4">
-                        <input type="text" id="player-name" class="input-field" placeholder="Masukkan Namamu" required>
-                    </div>
-                    <div class="mb-6">
-                        <input type="text" id="player-class" class="input-field" placeholder="Masukkan Kelasmu" required>
-                    </div>
-                    <button type="submit" class="btn w-full bg-blue-500 text-white">
-                        Mulai Kuis! <span class="ml-2">🚀</span>
-                    </button>
-                </form>
+    <!-- Score Section -->
+    <div id="score-section" class="w-full max-w-md text-center hidden">
+        <div class="card p-8 rounded-2xl shadow-2xl">
+            <h1 class="text-4xl font-bold mb-2">Petualangan Selesai!</h1>
+            <p class="text-gray-300 mb-6">Kamu hebat, <span id="player-name" class="font-bold"></span>!</p>
+            <div class="bg-gray-700/50 rounded-lg p-6 mb-6">
+                <p class="text-lg text-gray-300">Skor Akhir</p>
+                <p id="final-score" class="text-6xl font-bold text-yellow-300"></p>
             </div>
-            <p id="user-id-text" class="text-xs text-gray-400 mt-4">ID Pemain: <span id="user-id"></span></p>
-        </div>
-
-        <!-- Halaman Kuis -->
-        <div id="quiz-page" class="w-full flex flex-col items-center p-4 transition-opacity duration-500 ease-in-out opacity-0 absolute top-0 left-0 h-full w-full pointer-events-none">
-            <h1 class="text-4xl font-extrabold text-blue-600 mb-8 float-animation">Kuis Seru!</h1>
-            <div class="w-full bg-gray-200 rounded-full h-4 mb-8">
-                <div id="progress-bar" class="bg-lime-500 h-4 rounded-full progress-bar"></div>
-            </div>
-            
-            <div id="question-container" class="w-full text-center mb-8">
-                <p id="question-text" class="text-2xl font-bold text-gray-800 mb-6"></p>
-                <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Tombol jawaban akan dimasukkan di sini oleh JavaScript -->
-                </div>
-            </div>
-
-            <button id="next-btn" class="btn bg-blue-500 text-white mt-8 hidden">
-                Selanjutnya <span class="ml-2">👉</span>
-            </button>
-        </div>
-
-        <!-- Halaman Dashboard Skor -->
-        <div id="dashboard-page" class="w-full flex-col items-center p-4 transition-opacity duration-500 ease-in-out opacity-0 absolute top-0 left-0 h-full w-full pointer-events-none hidden">
-            <div class="confetti-container" id="confetti-container"></div>
-            <h1 class="text-4xl font-extrabold text-purple-600 mb-4 float-animation">Papan Skor!</h1>
-            <p id="your-score-text" class="text-2xl font-bold text-gray-600 mb-4">Skormu: <span class="text-orange-500" id="final-score-text">0</span></p>
-            <div class="card p-8 text-center rounded-2xl w-full">
-                <ul id="leaderboard-list" class="space-y-2">
-                    <!-- Daftar pemain akan dimasukkan di sini oleh JavaScript -->
-                </ul>
-            </div>
-            <button id="restart-btn" class="btn bg-pink-500 text-white mt-8">
-                Main Lagi! <span class="ml-2">🎮</span>
-            </button>
+            <button id="submit-score-btn" class="btn-start w-full text-white font-bold py-3 px-4 rounded-lg text-lg">KIRIM SKOR</button>
+            <div id="loading-spinner" class="hidden mt-4"><p>Mengirim skor...</p></div>
         </div>
     </div>
 
     <script>
-        // Data pertanyaan dan jawaban
-        const questions = [
-            {
-                question: "Apa warna dari buah pisang yang sudah matang?",
-                options: ["Merah", "Kuning", "Hijau", "Biru"],
-                answer: "Kuning"
-            },
-            {
-                question: "Ada berapa huruf di dalam kata 'KUCING'?",
-                options: ["4", "5", "6", "7"],
-                answer: "6"
-            },
-            {
-                question: "Jika kamu punya 5 apel dan mengambil 2, berapa sisa apel yang kamu punya?",
-                options: ["2", "3", "5", "7"],
-                answer: "2"
-            },
-            {
-                question: "Hewan apa yang suka makan madu dan punya telinga bulat?",
-                options: ["Monyet", "Beruang", "Kelinci", "Gajah"],
-                answer: "Beruang"
-            },
-            {
-                question: "Apa nama planet terdekat dari Matahari?",
-                options: ["Merkurius", "Mars", "Bumi", "Venus"],
-                answer: "Merkurius"
-            }
+        // ===================================================================================
+        // !!! PENTING: GANTI URL DI BAWAH INI DENGAN URL APLIKASI WEB ANDA !!!
+        // ===================================================================================
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwqPSfV6_BIc1E3QJ_a0NgMoSB6XM9IL86MzGvi7pitw0GslEolfaaiusXVPsZrDzl9/exec";
+        // ===================================================================================
+
+        const quizData = [
+            { question: "Planet manakah yang dikenal sebagai 'Planet Merah'?", answers: [{ text: "Bumi", correct: false }, { text: "Mars", correct: true }, { text: "Jupiter", correct: false }, { text: "Saturnus", correct: false }] },
+            { question: "Apa nama galaksi tempat Tata Surya kita berada?", answers: [{ text: "Andromeda", correct: false }, { text: "Triangulum", correct: false }, { text: "Bima Sakti", correct: true }, { text: "Sombrero", correct: false }] },
+            { question: "Berapa lama waktu yang dibutuhkan cahaya Matahari untuk mencapai Bumi?", answers: [{ text: "8 menit", correct: true }, { text: "8 detik", correct: false }, { text: "8 jam", correct: false }, { text: "8 hari", correct: false }] },
+            { question: "Siapakah orang pertama yang berjalan di Bulan?", answers: [{ text: "Buzz Aldrin", correct: false }, { text: "Yuri Gagarin", correct: false }, { text: "Michael Collins", correct: false }, { text: "Neil Armstrong", correct: true }] },
+            { question: "Planet terbesar di Tata Surya kita adalah...", answers: [{ text: "Neptunus", correct: false }, { text: "Jupiter", correct: true }, { text: "Matahari", correct: false }, { text: "Bumi", correct: false }] }
         ];
 
-        // Mendapatkan elemen HTML
-        const introPage = document.getElementById('intro-page');
-        const introForm = document.getElementById('intro-form');
-        const playerNameInput = document.getElementById('player-name');
-        const playerClassInput = document.getElementById('player-class');
-        const userIdText = document.getElementById('user-id');
-        const quizPage = document.getElementById('quiz-page');
-        const dashboardPage = document.getElementById('dashboard-page');
-        const questionText = document.getElementById('question-text');
-        const optionsContainer = document.getElementById('options-container');
-        const nextBtn = document.getElementById('next-btn');
-        const finalScoreText = document.getElementById('final-score-text');
-        const restartBtn = document.getElementById('restart-btn');
+        const userInfoSection = document.getElementById('user-info-section');
+        const quizSection = document.getElementById('quiz-section');
+        const scoreSection = document.getElementById('score-section');
+        const userForm = document.getElementById('user-form');
+        const questionCounter = document.getElementById('question-counter');
+        const timerElement = document.getElementById('timer');
         const progressBar = document.getElementById('progress-bar');
-        const confettiContainer = document.getElementById('confetti-container');
-        const backgroundMusic = document.getElementById('background-music');
+        const questionText = document.getElementById('question-text');
+        const answerButtons = document.getElementById('answer-buttons');
+        const playerName = document.getElementById('player-name');
+        const finalScore = document.getElementById('final-score');
+        const submitScoreBtn = document.getElementById('submit-score-btn');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const rocket = document.getElementById('rocket');
 
-        // Variabel untuk melacak status kuis
-        let currentQuestionIndex = 0;
-        let score = 0;
-        let playerName = '';
-        let playerClass = '';
+        let currentQuestionIndex = 0, score = 0, timer, timeLeft = 15, userData = {};
 
-        // Fungsi untuk memulai atau merestart kuis
+        userForm.addEventListener('submit', e => {
+            e.preventDefault();
+            userData = { name: document.getElementById('name').value, class: document.getElementById('class').value };
+            userInfoSection.classList.add('hidden');
+            quizSection.classList.remove('hidden');
+            quizSection.classList.add('animate-fly');
+            startQuiz();
+        });
+
         function startQuiz() {
-            currentQuestionIndex = 0;
-            score = 0;
-            // Menyembunyikan halaman lain dan menampilkan kuis
-            introPage.style.opacity = '0';
-            introPage.style.pointerEvents = 'none';
-            quizPage.style.opacity = '1';
-            quizPage.style.pointerEvents = 'auto';
-            dashboardPage.style.opacity = '0';
-            dashboardPage.style.pointerEvents = 'none';
-            // Menampilkan pertanyaan pertama
-            displayQuestion();
+            currentQuestionIndex = 0; score = 0;
+            showQuestion();
         }
 
-        // Fungsi untuk menampilkan pertanyaan dan opsi
-        function displayQuestion() {
+        function showQuestion() {
             resetState();
-            const currentQuestion = questions[currentQuestionIndex];
-            questionText.textContent = currentQuestion.question;
-
-            // Memperbarui progres bar
-            const progressPercentage = (currentQuestionIndex / questions.length) * 100;
-            progressBar.style.width = `${progressPercentage}%`;
-
-            // Menambahkan tombol untuk setiap opsi
-            currentQuestion.options.forEach(option => {
+            let currentQuestion = quizData[currentQuestionIndex];
+            let questionNo = currentQuestionIndex + 1;
+            questionCounter.innerText = `Pertanyaan ${questionNo}/${quizData.length}`;
+            progressBar.style.width = `${(questionNo / quizData.length) * 100}%`;
+            questionText.innerText = currentQuestion.question;
+            currentQuestion.answers.forEach(answer => {
                 const button = document.createElement('button');
-                button.textContent = option;
-                button.classList.add('btn', 'bg-white', 'text-gray-700');
-                if (option === currentQuestion.answer) {
-                    button.dataset.correct = "true";
-                }
+                button.innerText = answer.text;
+                button.classList.add('answer-btn', 'w-full', 'p-4', 'text-white', 'font-semibold', 'rounded-lg', 'border-2', 'border-gray-500');
+                if (answer.correct) button.dataset.correct = true;
                 button.addEventListener('click', selectAnswer);
-                optionsContainer.appendChild(button);
+                answerButtons.appendChild(button);
             });
+            startTimer();
         }
-
-        // Fungsi untuk mereset tampilan sebelum menampilkan pertanyaan baru
+        
         function resetState() {
-            nextBtn.classList.add('hidden');
-            while (optionsContainer.firstChild) {
-                optionsContainer.removeChild(optionsContainer.firstChild);
-            }
+            clearInterval(timer);
+            timeLeft = 15;
+            timerElement.innerText = timeLeft;
+            timerElement.classList.remove('text-red-500');
+            answerButtons.innerHTML = '';
         }
 
-        // Fungsi yang dipanggil saat pengguna memilih jawaban
+        function startTimer() {
+            timer = setInterval(() => {
+                timeLeft--;
+                timerElement.innerText = timeLeft;
+                if (timeLeft <= 5) timerElement.classList.add('text-red-500');
+                if (timeLeft <= 0) { clearInterval(timer); handleNextQuestion(); }
+            }, 1000);
+        }
+
         function selectAnswer(e) {
+            clearInterval(timer);
             const selectedBtn = e.target;
             const isCorrect = selectedBtn.dataset.correct === "true";
-
-            if (isCorrect) {
-                score++;
-                selectedBtn.classList.remove('bg-white', 'text-gray-700');
-                selectedBtn.classList.add('bg-lime-500', 'text-white', 'scale-105');
-            } else {
-                selectedBtn.classList.remove('bg-white', 'text-gray-700');
-                selectedBtn.classList.add('bg-rose-500', 'text-white', 'scale-95');
-            }
-
-            // Menonaktifkan semua tombol setelah satu jawaban dipilih
-            Array.from(optionsContainer.children).forEach(button => {
+            if (isCorrect) { score += 20; selectedBtn.classList.add('correct'); } 
+            else { selectedBtn.classList.add('incorrect'); }
+            Array.from(answerButtons.children).forEach(button => {
+                if (button.dataset.correct === "true") button.classList.add('correct');
                 button.disabled = true;
-                // Menandai jawaban yang benar jika yang dipilih salah
-                if (button.dataset.correct === "true") {
-                    button.classList.remove('bg-white', 'text-gray-700');
-                    button.classList.add('bg-lime-500', 'text-white');
-                }
             });
-
-            // Menampilkan tombol "Selanjutnya"
-            nextBtn.classList.remove('hidden');
+            setTimeout(handleNextQuestion, 1500);
         }
 
-        // Fungsi untuk meluncurkan animasi confetti
-        function launchConfetti() {
-            for (let i = 0; i < 50; i++) {
-                const confetti = document.createElement('div');
-                confetti.classList.add('confetti');
-                confetti.style.left = `${Math.random() * 100}%`;
-                confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
-                confetti.style.animationDelay = `${Math.random() * 0.5}s`;
-                confetti.style.animationDuration = `${2 + Math.random() * 1}s`;
-                confettiContainer.appendChild(confetti);
-            }
-            // Hapus confetti setelah animasi selesai
-            setTimeout(() => {
-                while (confettiContainer.firstChild) {
-                    confettiContainer.removeChild(confettiContainer.firstChild);
-                }
-            }, 3000);
-        }
-
-        // Menambahkan event listener untuk tombol "Selanjutnya"
-        nextBtn.addEventListener('click', () => {
+        function handleNextQuestion() {
             currentQuestionIndex++;
-            if (currentQuestionIndex < questions.length) {
-                displayQuestion();
-            } else {
-                // Kuis selesai, simpan skor dan tampilkan papan skor
-                finalScoreText.textContent = `${score}/${questions.length}`;
-                if (score === questions.length) {
-                     launchConfetti();
-                }
-                saveScoreToFirestore(playerName, playerClass, score);
-                showLeaderboard();
+            if (currentQuestionIndex < quizData.length) showQuestion();
+            else showScore();
+        }
+
+        function showScore() {
+            quizSection.classList.add('hidden');
+            scoreSection.classList.remove('hidden');
+            scoreSection.classList.add('animate-fly');
+            playerName.innerText = userData.name;
+            finalScore.innerText = score;
+            const rocketPosition = (score / 100) * (window.innerHeight * 0.8) - 100;
+            rocket.style.bottom = `${Math.max(rocketPosition, 20)}px`;
+        }
+
+        submitScoreBtn.addEventListener('click', () => {
+            submitScoreBtn.classList.add('hidden');
+            loadingSpinner.classList.remove('hidden');
+            const dataToSubmit = { ...userData, score };
+            fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(dataToSubmit), headers: { 'Content-Type': 'application/json' }})
+                .then(response => response.json())
+                .then(res => {
+                    if(res.status === 'success') {
+                        // Arahkan ke halaman papan skor setelah berhasil
+                        window.location.href = 'papan-skor.html';
+                    } else {
+                        alert('Gagal mengirim skor. Coba lagi.');
+                        submitScoreBtn.classList.remove('hidden');
+                        loadingSpinner.classList.add('hidden');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error!', error.message);
+                    alert('Terjadi kesalahan. Periksa koneksi internet Anda.');
+                    submitScoreBtn.classList.remove('hidden');
+                    loadingSpinner.classList.add('hidden');
+                });
+        });
+        
+        function createStars() {
+            const container = document.getElementById('stars-container');
+            for (let i = 0; i < 100; i++) {
+                const star = document.createElement('div');
+                star.classList.add('star');
+                const size = Math.random() * 3;
+                star.style.width = `${size}px`; star.style.height = `${size}px`;
+                star.style.top = `${Math.random() * 100}%`; star.style.left = `${Math.random() * 100}%`;
+                star.style.animationDelay = `${Math.random() * 2}s`;
+                container.appendChild(star);
             }
-        });
-
-        // Menambahkan event listener untuk form intro
-        introForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            playerName = playerNameInput.value;
-            playerClass = playerClassInput.value;
-            startQuiz();
-            // Putar musik saat pengguna memulai kuis
-            backgroundMusic.play().catch(error => {
-                console.log("Autoplay was prevented. User needs to interact with the page first.");
-                // Jika autoplay gagal, mungkin karena aturan browser, biarkan saja.
-            });
-        });
-
-        // Menambahkan event listener untuk tombol "Main Lagi"
-        restartBtn.addEventListener('click', () => {
-            // Sembunyikan dashboard dan tampilkan intro page lagi
-            dashboardPage.style.opacity = '0';
-            dashboardPage.style.pointerEvents = 'none';
-            introPage.style.opacity = '1';
-            introPage.style.pointerEvents = 'auto';
-            // Hentikan musik saat kembali ke halaman intro
-            backgroundMusic.pause();
-            backgroundMusic.currentTime = 0;
-        });
-
-        // Memulai inisialisasi Firebase saat halaman dimuat
-        window.onload = async () => {
-            await initializeFirebase();
-            // Tampilkan ID pemain setelah autentikasi
-            if (window.userId) {
-                userIdText.textContent = `ID Pemain: ${window.userId}`;
-            }
-        };
-
+        }
+        createStars();
     </script>
 </body>
 </html>
