@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Papan Skor - Kuis Bu Guru Galak</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Poppins', sans-serif; background: #0f0c29; background: -webkit-linear-gradient(to right, #24243e, #302b63, #0f0c29); background: linear-gradient(to right, #24243e, #302b63, #0f0c29); position: relative; }
+        .star { position: absolute; background-color: white; border-radius: 50%; animation: twinkle 2s infinite ease-in-out; }
+        @keyframes twinkle { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+        .card { background-color: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
+        .rank-1-card { background: linear-gradient(135deg, #FFD700, #FFA500); color: #413300; transform: scale(1.05); z-index: 10; }
+        .rank-2-card { background: linear-gradient(135deg, #C0C0C0, #A9A9A9); color: #363636; }
+        .rank-3-card { background: linear-gradient(135deg, #CD7F32, #A0522D); color: #4d3013; }
+        .table-row-animation { animation: slide-in 0.5s ease-out forwards; opacity: 0; }
+        @keyframes slide-in { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .loader { border-top-color: #3498db; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="text-white min-h-screen p-4 md:p-8">
+    <div id="stars-container"></div>
+    <div class="container mx-auto max-w-4xl">
+        <div class="text-center mb-8">
+            <h1 class="text-5xl font-bold">Papan Skor Tertinggi</h1>
+            <p class="text-gray-300 mt-2">Para murid terpintar di galaksi!</p>
+        </div>
+
+        <!-- Top 3 Players -->
+        <div id="top-players" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 text-center items-end">
+            <div id="rank-2-card" class="card rounded-2xl p-6 hidden">
+                <img src="https://placehold.co/80x80/C0C0C0/363636?text=🥈" class="mx-auto rounded-full mb-3" alt="Silver">
+                <h3 id="rank-2-name" class="text-xl font-bold"></h3><p id="rank-2-class" class="text-sm opacity-80"></p><p id="rank-2-score" class="text-3xl font-bold mt-2"></p>
+            </div>
+            <div id="rank-1-card" class="card rounded-2xl p-6 hidden">
+                <img src="https://placehold.co/100x100/FFD700/413300?text=🥇" class="mx-auto rounded-full mb-3" alt="Gold">
+                <h3 id="rank-1-name" class="text-2xl font-bold"></h3><p id="rank-1-class" class="text-sm opacity-80"></p><p id="rank-1-score" class="text-4xl font-bold mt-2"></p>
+            </div>
+            <div id="rank-3-card" class="card rounded-2xl p-6 hidden">
+                <img src="https://placehold.co/80x80/CD7F32/4d3013?text=🥉" class="mx-auto rounded-full mb-3" alt="Bronze">
+                <h3 id="rank-3-name" class="text-xl font-bold"></h3><p id="rank-3-class" class="text-sm opacity-80"></p><p id="rank-3-score" class="text-3xl font-bold mt-2"></p>
+            </div>
+        </div>
+
+        <!-- Full Leaderboard Table -->
+        <div class="card rounded-2xl overflow-hidden">
+            <table class="w-full text-left">
+                <thead class="bg-white/10"><tr><th class="p-4">Peringkat</th><th class="p-4">Nama</th><th class="p-4">Kelas</th><th class="p-4 text-right">Skor</th></tr></thead>
+                <tbody id="leaderboard-body"></tbody>
+            </table>
+            <div id="loader-container" class="flex justify-center items-center p-8"><div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div></div>
+        </div>
+        <div class="text-center mt-8"><a href="index.html" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg">Main Lagi!</a></div>
+    </div>
+
+    <script>
+        // ===================================================================================
+        // !!! PENTING: GANTI URL DI BAWAH INI DENGAN URL APLIKASI WEB ANDA !!!
+        // ===================================================================================
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwqPSfV6_BIc1E3QJ_a0NgMoSB6XM9IL86MzGvi7pitw0GslEolfaaiusXVPsZrDzl9/exec";
+        // ===================================================================================
+
+        const leaderboardBody = document.getElementById('leaderboard-body');
+        const loaderContainer = document.getElementById('loader-container');
+
+        function loadScores() {
+            fetch(SCRIPT_URL)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        populateTable(data.leaderboard);
+                    } else {
+                        throw new Error(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching scores:', error);
+                    loaderContainer.innerHTML = '<p class="text-red-400">Gagal memuat data.</p>';
+                });
+        }
+
+        function populateTable(data) {
+            loaderContainer.style.display = 'none';
+            if (data.length === 0) {
+                leaderboardBody.innerHTML = '<tr><td colspan="4" class="text-center p-4">Belum ada data skor!</td></tr>';
+                return;
+            }
+
+            const top3 = data.slice(0, 3);
+            const others = data.slice(3);
+
+            // Populate Top 3
+            top3.forEach((player, index) => {
+                const rank = index + 1;
+                const card = document.getElementById(`rank-${rank}-card`);
+                if (card) {
+                    card.querySelector(`#rank-${rank}-name`).innerText = player.name;
+                    card.querySelector(`#rank-${rank}-class`).innerText = player.class;
+                    card.querySelector(`#rank-${rank}-score`).innerText = player.score;
+                    card.classList.add(`rank-${rank}-card`);
+                    card.classList.remove('hidden');
+                }
+            });
+
+            // Populate table for others
+            others.forEach((player, index) => {
+                const row = document.createElement('tr');
+                row.classList.add('border-b', 'border-white/10', 'table-row-animation');
+                row.style.animationDelay = `${index * 0.05}s`;
+                row.innerHTML = `<td class="p-4">${player.rank}</td><td class="p-4 font-semibold">${player.name}</td><td class="p-4">${player.class}</td><td class="p-4 text-right font-bold text-lg text-yellow-300">${player.score}</td>`;
+                leaderboardBody.appendChild(row);
+            });
+        }
+
+        function createStars() {
+            const container = document.getElementById('stars-container');
+            for (let i = 0; i < 100; i++) {
+                const star = document.createElement('div');
+                star.classList.add('star');
+                const size = Math.random() * 3;
+                star.style.width = `${size}px`; star.style.height = `${size}px`;
+                star.style.top = `${Math.random() * 100}%`; star.style.left = `${Math.random() * 100}%`;
+                star.style.animationDelay = `${Math.random() * 2}s`;
+                container.appendChild(star);
+            }
+        }
+        
+        window.onload = () => {
+            createStars();
+            loadScores();
+        };
+    </script>
+</body>
+</html>
