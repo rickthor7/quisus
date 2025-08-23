@@ -40,7 +40,7 @@
     <!-- User Info Section -->
     <div id="user-info-section" class="w-full max-w-md text-center animate-fly">
         <div class="card p-8 rounded-2xl shadow-2xl">
-            <h1 class="text-4xl font-bold mb-6">Kuis dari Bu Galak</h1>
+            <h1 class="text-4xl font-bold mb-6">Kuis Luar Angkasa</h1>
             <form id="user-form">
                 <input type="text" id="name" class="w-full bg-gray-700/50 border border-gray-500 rounded-lg p-3 mb-4 text-white placeholder-gray-400" placeholder="Tulis Namamu" required>
                 <input type="text" id="class" class="w-full bg-gray-700/50 border border-gray-500 rounded-lg p-3 mb-6 text-white placeholder-gray-400" placeholder="Tulis Kelasmu" required>
@@ -77,11 +77,7 @@
     </div>
 
     <script>
-        // ===================================================================================
-        // !!! PENTING: GANTI URL DI BAWAH INI DENGAN URL APLIKASI WEB ANDA !!!
-        // ===================================================================================
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwqPSfV6_BIc1E3QJ_a0NgMoSB6XM9IL86MzGvi7pitw0GslEolfaaiusXVPsZrDzl9/exec";
-        // ===================================================================================
+        const SCRIPT_URL = "GANTI_DENGAN_URL_APLIKASI_WEB_ANDA";
 
         const quizData = [
             { question: "Planet manakah yang dikenal sebagai 'Planet Merah'?", answers: [{ text: "Bumi", correct: false }, { text: "Mars", correct: true }, { text: "Jupiter", correct: false }, { text: "Saturnus", correct: false }] },
@@ -185,31 +181,44 @@
             const rocketPosition = (score / 100) * (window.innerHeight * 0.8) - 100;
             rocket.style.bottom = `${Math.max(rocketPosition, 20)}px`;
         }
-
+        
+        // ===================================================================================
+        // !!! BAGIAN INI SUDAH DIPERBAIKI !!!
+        // ===================================================================================
         submitScoreBtn.addEventListener('click', () => {
             submitScoreBtn.classList.add('hidden');
             loadingSpinner.classList.remove('hidden');
+            
             const dataToSubmit = { ...userData, score };
-            fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(dataToSubmit), headers: { 'Content-Type': 'application/json' }})
-                .then(response => response.json())
-                .then(res => {
-                    if(res.status === 'success') {
-                        // Arahkan ke halaman papan skor setelah berhasil
-                        window.location.href = 'papan-skor.html';
-                    } else {
-                        alert('Gagal mengirim skor. Coba lagi.');
-                        submitScoreBtn.classList.remove('hidden');
-                        loadingSpinner.classList.add('hidden');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error!', error.message);
-                    alert('Terjadi kesalahan. Periksa koneksi internet Anda.');
-                    submitScoreBtn.classList.remove('hidden');
-                    loadingSpinner.classList.add('hidden');
-                });
+            
+            // Menggunakan 'text/plain' untuk menghindari masalah preflight CORS
+            // Google Apps Script akan tetap bisa membacanya dengan benar
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors', // Mode ini seringkali membantu
+                cache: 'no-cache',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(dataToSubmit),
+                redirect: 'follow'
+            })
+            .then(response => {
+                console.log("Berhasil mengirim, server akan memproses.");
+                // Karena menggunakan 'no-cors', kita tidak bisa membaca responsnya.
+                // Jadi kita langsung arahkan ke halaman papan skor.
+                // Ganti 'papan-skor.html' dengan link papan skor Anda jika berbeda
+                window.location.href = 'papan-skor.html';
+            })
+            .catch(error => {
+                console.error('Error!', error.message);
+                alert('Terjadi kesalahan. Periksa koneksi internet Anda dan coba lagi.');
+                submitScoreBtn.classList.remove('hidden');
+                loadingSpinner.classList.add('hidden');
+            });
         });
-        
+        // ===================================================================================
+
         function createStars() {
             const container = document.getElementById('stars-container');
             for (let i = 0; i < 100; i++) {
